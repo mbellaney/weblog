@@ -20,6 +20,38 @@ class Category(models.Model):
     def __unicode__(self):
         return self.title
 
+
+class Link(models.Model):
+    title = models.CharField(max_length=250)
+    description = models.TextField(blank=True)
+    description_html = models.TextField(editable=False, blank=True)
+    url = models.URLField(unique=True)
+    posted_by = models.ForeignKey(User)
+    pub_date = models.DateTimeField(default=datetime.datetime.now)
+    slug = models.SlugField(unique_for_date='pub_date')
+    tags = TagField()
+    enable_comments = models.BooleanField(default=True)
+    post_elsewhere = models.BooleanField('Post to Delicious', default=True)
+    via_name = models.CharField('Via', max_length=250, blank=True, help_text='The name of the person whose site you spotted the link on. Optional.')
+    via_url = models.URLField('Via URL', blank=True, help_text='The URL of the site where you spotted the link. Optional.')
+
+    class Meta:
+	ordering = ['-pub_date']
+        verbose_name_plural = "Links"
+
+    def __unicode__(self):
+	return self.title
+
+    def get_absolute_url(self):
+        return ('weblog_link_detail', (), { 'year': self.pub_date.strftime('%Y'), 'month': self.pub_date.strftime('%b').lower(),
+                                              'day': self.pub_date.strftime('%d'), 'slug': self.slug })
+	get_absolute_url = models.permalink(get_absolute_url)
+
+    def save(self):
+	if self.description:
+	    self.description_html = markdown(self.description)
+	super(Link, self).save()
+
 class Entry(models.Model):
     LIVE_STATUS = 1
     DRAFT_STATUS = 2
@@ -51,7 +83,7 @@ class Entry(models.Model):
         return self.title
 
     def get_absolute_url(self):
-	return ('coltrane_entry_detail', (), { 'year': self.pub_date.strftime("%Y"),
+	return ('weblog_entry_detail', (), { 'year': self.pub_date.strftime("%Y"),
                                            'month': self.pub_date.strftime("%b").lower(),
                                            'day': self.pub_date.strftime("%d"),
                                            'slug': self.slug })
@@ -62,3 +94,4 @@ class Entry(models.Model):
         if self.excerpt:
             self.excerpt_html = markdown(self.excerpt)
         super(Entry, self).save(force_insert, force_update)
+
